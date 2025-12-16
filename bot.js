@@ -3,9 +3,8 @@ import { ethers } from "ethers";
 import { ABI } from "./abi.js";
 
 // ================= CONFIG =================
-const CONTRACT = "0x945D605916e1eaa22b97E39c5E8b6940042a079c";
+const CONTRACT = "0xe0e7f149959c6cac0dDc2Cb4ab27942BFFdA1eb4";
 const QUANTITY = 1;
-const PRICE_PER_TOKEN = ethers.parseUnits("0.00065", "ether"); // Actual price from successful claim
 
 // GAS - Optimized based on successful claim (~$2.5-3 total including token cost)
 const MAX_PRIORITY_FEE = ethers.parseUnits("0.5", "gwei"); // Very low priority fee
@@ -17,8 +16,8 @@ const GAS_LIMIT = 150000; // Optimized limit based on successful tx (was ~103k g
 const TIMING_TOLERANCE = 500; // 0.5 seconds buffer (earlier execution)
 
 // TARGET TIME
-// 03:00 WIB = 20:00 UTC (H-1)
-const TARGET_UTC_HOUR = 20;
+// 05:00 WIB = 22:00 UTC (H-1)
+const TARGET_UTC_HOUR = 22;
 const TARGET_UTC_MINUTE = 0;
 const TARGET_UTC_SECOND = 0;
 // =========================================
@@ -52,10 +51,10 @@ async function waitUntilTarget() {
   }
 }
 
-async function estimateGasSafely(contract, claimArgs) {
+async function estimateGasSafely(contract, mintArgs) {
   try {
-    // Try to estimate gas for the claim function
-    const gasEstimate = await contract.claim.estimateGas(...claimArgs.slice(0, -1)); // Exclude tx options
+    // Try to estimate gas for the mintSeaDrop function
+    const gasEstimate = await contract.mintSeaDrop.estimateGas(...mintArgs.slice(0, -1)); // Exclude tx options
     const gasWithBuffer = (gasEstimate * 120n) / 100n; // Add 20% buffer
     return gasWithBuffer > BigInt(GAS_LIMIT) ? gasWithBuffer : BigInt(GAS_LIMIT);
   } catch (error) {
@@ -90,33 +89,28 @@ async function main() {
   const contract = new ethers.Contract(CONTRACT, ABI, wallet);
 
   console.log("Wallet:", wallet.address);
-  console.log("🕒 Waiting for 03:00 WIB (20:00 UTC)");
+  console.log("🕒 Waiting for 05:00 WIB (22:00 UTC)");
 
   await waitUntilTarget();
 
-  console.log("🚀 CLAIMING NOW!");
+  console.log("🚀 MINTING NOW!");
 
-  const claimArgs = [
+  const mintArgs = [
     wallet.address,
-    QUANTITY,
-    ethers.ZeroAddress,
-    PRICE_PER_TOKEN,
-    { proof: [], maxQuantity: 0 },
-    "0x"
+    QUANTITY
   ];
 
   // Estimate gas with safety buffer
-  const estimatedGas = await estimateGasSafely(contract, claimArgs);
+  const estimatedGas = await estimateGasSafely(contract, mintArgs);
 
   const txOptions = {
-    value: ethers.parseUnits("0.00065", "ether"), // Actual price from successful claim
     gasLimit: estimatedGas,
     maxFeePerGas: MAX_FEE,
     maxPriorityFeePerGas: MAX_PRIORITY_FEE,
     chainId: (await provider.getNetwork()).chainId // Explicit chain ID for clarity
   };
 
-  const txFunction = () => contract.claim(...claimArgs, txOptions);
+  const txFunction = () => contract.mintSeaDrop(...mintArgs, txOptions);
 
   try {
     const tx = await retryTransaction(txFunction, 3, 2000);
