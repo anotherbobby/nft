@@ -7,9 +7,9 @@ const CONTRACT = "0xe0e7f149959c6cac0dDc2Cb4ab27942BFFdA1eb4";
 const QUANTITY = 1;
 
 // GAS - Optimized based on successful claim (~$2.5-3 total including token cost)
-const MAX_PRIORITY_FEE = ethers.parseUnits("0.5", "gwei"); // Very low priority fee
-const MAX_FEE = ethers.parseUnits("1.5", "gwei"); // Optimized max fee for ~$2.5-3 total
-const GAS_LIMIT = 150000; // Optimized limit based on successful tx (was ~103k gas)
+const MAX_PRIORITY_FEE = ethers.parseUnits("1", "gwei"); // Very low priority fee
+const MAX_FEE = ethers.parseUnits("3", "gwei"); // Optimized max fee for ~$2.5-3 total
+const GAS_LIMIT = 200000; // Optimized limit based on successful tx (was ~103k gas)
 
 // TIMING TOLERANCE (in milliseconds)
 // Add buffer for network latency and transaction propagation
