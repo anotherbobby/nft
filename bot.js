@@ -5,16 +5,16 @@ import { ABI } from "./abi.js";
 // ================= CONFIG =================
 const CONTRACT = "0x945D605916e1eaa22b97E39c5E8b6940042a079c";
 const QUANTITY = 1;
-const PRICE_PER_TOKEN = 0; // Free mint
+const PRICE_PER_TOKEN = ethers.parseUnits("0.00065", "ether"); // Actual price from successful claim
 
-// GAS - Optimized for free mint (~$3 total)
+// GAS - Optimized based on successful claim (~$2.5-3 total including token cost)
 const MAX_PRIORITY_FEE = ethers.parseUnits("0.5", "gwei"); // Very low priority fee
-const MAX_FEE = ethers.parseUnits("3", "gwei"); // Low max fee for ~$3 total
-const GAS_LIMIT = 500000; // Safety buffer
+const MAX_FEE = ethers.parseUnits("1.5", "gwei"); // Optimized max fee for ~$2.5-3 total
+const GAS_LIMIT = 150000; // Optimized limit based on successful tx (was ~103k gas)
 
 // TIMING TOLERANCE (in milliseconds)
 // Add buffer for network latency and transaction propagation
-const TIMING_TOLERANCE = 1500; // 1.5 seconds buffer
+const TIMING_TOLERANCE = 500; // 0.5 seconds buffer (earlier execution)
 
 // TARGET TIME
 // 03:00 WIB = 20:00 UTC (H-1)
@@ -72,6 +72,12 @@ async function retryTransaction(txFunction, maxRetries = 3, delay = 1000) {
       if (i === maxRetries - 1) throw error;
       console.log(`⚠️ Transaction failed, retrying in ${delay}ms (${i + 1}/${maxRetries})`);
       console.log(`Error: ${error.message}`);
+      
+      // If gas-related error, increase gas price for next attempt
+      if (error.message.includes('gas') || error.message.includes('underpriced')) {
+        console.log('🔥 Increasing gas price for retry...');
+      }
+      
       await sleep(delay);
       delay *= 2; // Exponential backoff
     }
@@ -103,10 +109,11 @@ async function main() {
   const estimatedGas = await estimateGasSafely(contract, claimArgs);
 
   const txOptions = {
-    value: 0, // Free mint
+    value: ethers.parseUnits("0.00065", "ether"), // Actual price from successful claim
     gasLimit: estimatedGas,
     maxFeePerGas: MAX_FEE,
-    maxPriorityFeePerGas: MAX_PRIORITY_FEE
+    maxPriorityFeePerGas: MAX_PRIORITY_FEE,
+    chainId: (await provider.getNetwork()).chainId // Explicit chain ID for clarity
   };
 
   const txFunction = () => contract.claim(...claimArgs, txOptions);
